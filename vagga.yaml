@@ -2,10 +2,8 @@ containers:
   rootfs:
     setup:
     - !Tar
-#      url: ../nodeos-barebones/out/latest
       url: ./out/barebones.tar
     - !Tar
-#      url: ../nodeos-initramfs/out/latest
       url: ./out/initramfs.tar
 
 commands:
