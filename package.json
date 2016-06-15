@@ -4,8 +4,8 @@
   "scripts": {
     "docker": "docker run",
     "dockerBuild": "docker build -t rootfs .",
-    "install": "scripts/build",
-    "preinstall": "scripts/preinstall",
+    "build": "scripts/build",
+    "install": "scripts/preinstall",
     "start": "scripts/start",
     "test": "scripts/test",
     "unbuild": "scripts/unbuild"
@@ -17,6 +17,7 @@
     "nodeos-initramfs": "^1.0.0-RC1"
   },
   "dependencies": {
+    "nodeos-cross-toolchain": "NodeOS/nodeos-cross-toolchain",
     "download-manager": "^0.0.20",
     "genfatfs": "nodeos/genfatfs"
   },
