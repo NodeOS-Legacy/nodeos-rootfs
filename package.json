@@ -5,7 +5,7 @@
     "docker": "docker run",
     "dockerBuild": "docker build -t rootfs .",
     "build": "scripts/build",
-    "install": "scripts/preinstall",
+    "install": "scripts/install",
     "start": "scripts/start",
     "test": "scripts/test",
     "unbuild": "scripts/unbuild"
