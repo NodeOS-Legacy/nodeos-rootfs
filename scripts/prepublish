@@ -1,0 +1,28 @@
+#!/usr/bin/env node
+
+const spawn = require('child_process').spawn
+
+
+const BAREBONES = require('nodeos-barebones')
+const INITRAMFS = require('nodeos-initramfs')
+
+
+// http://stackoverflow.com/a/34597104/586382
+//
+// NPM will run prepublish script after `npm install`
+// (https://docs.npmjs.com/misc/scripts). This ensures that when script is
+// executed using `npm *` it is run only when the command is `npm install`.
+const npm_config_argv = process.env.npm_config_argv
+if(npm_config_argv && JSON.parse(npm_config_argv).original[0] === 'install')
+  spawn('npm', ['run', 'build'], {cwd: BAREBONES, stdio: 'inherit'})
+  .on('exit', function(error, signal)
+  {
+    error = error || signal
+    if(error) return process.exit(error)
+
+    spawn('npm', ['run', 'build'], {cwd: INITRAMFS, stdio: 'inherit'})
+    .on('exit', function(error, signal)
+    {
+      process.exit(error || signal)
+    })
+  })

@@ -4,7 +4,7 @@ var fs    = require('fs')
 var spawn = require('child_process').spawn
 
 
-const QEMU_SYSTEM = '../nodeos-barebones/usr/bin/qemu-system-'
+const QEMU_SYSTEM = require('qemu')+'/bin/qemu-system-'
 
 
 var link = fs.readlinkSync('out/latest').split('/');
@@ -47,11 +47,11 @@ var args    =
 switch(type)
 {
   case 'iso':
-    args.push('-cdrom', 'out/latest')
+    args.push('-cdrom', 'out/'+cpu+'/'+type)
   break
 
   case 'img':
-    args.push('-hda', 'out/latest')
+    args.push('-hda', 'out/'+cpu+'/'+type)
   break
 
   default:

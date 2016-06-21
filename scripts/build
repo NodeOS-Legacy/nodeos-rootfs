@@ -14,8 +14,6 @@ INITRAMFS=`node -p "require('nodeos-initramfs')"`
 
 source $TOOLCHAIN/scripts/adjustEnvVars.sh || exit $?
 
-PATH=$TOOLCHAIN/bin:$PATH
-
 
 # Clean object dir and return the input error
 function err(){
