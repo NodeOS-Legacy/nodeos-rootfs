@@ -1,6 +1,6 @@
 {
   "name": "nodeos-rootfs",
-  "version": "1.0.0-RC2",
+  "version": "1.0.0-RC2.0",
   "scripts": {
     "docker": "docker run",
     "dockerBuild": "docker build -t rootfs .",
@@ -15,16 +15,16 @@
   "license": "MIT",
   "peerDependencies": {
     "nodeos-barebones": "1.0.0-RC2.2",
-    "nodeos-initramfs": "1.0.0-RC2.2"
+    "nodeos-initramfs": "1.0.0-RC2.3"
   },
   "dependencies": {
-    "nodeos-cross-toolchain": "^1.0.0-RC2.8",
+    "nodeos-cross-toolchain": "^1.0.0-RC2.11",
     "download-manager": "^0.0.20",
     "genfatfs": "nodeos/genfatfs"
   },
   "devDependencies": {
     "nodeos-barebones": "1.0.0-RC2.2",
-    "nodeos-initramfs": "1.0.0-RC2.2",
+    "nodeos-initramfs": "1.0.0-RC2.3",
     "qemu": "NodeOS/qemu"
   },
   "description": "Generate a bootable NodeOS disk image",
