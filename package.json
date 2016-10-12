@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "nodeos-cross-toolchain": "^1.0.0-RC2.11",
-    "download-manager": "^0.1.2",
+    "download-manager": "^0.1.3",
     "genfatfs": "nodeos/genfatfs"
   },
   "devDependencies": {
