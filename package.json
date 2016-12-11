@@ -1,6 +1,6 @@
 {
   "name": "nodeos-bootfs",
-  "version": "1.0.0-RC2.0",
+  "version": "1.0.0-RC3",
   "scripts": {
     "install": "scripts/install",
     "test": "scripts/test"
