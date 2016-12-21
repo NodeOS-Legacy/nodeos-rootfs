@@ -179,7 +179,7 @@ case $MACHINE in
 
         createPartitionImage || exit $?
 
-        # $SRC_DIR/bios/linux/syslinux --install $OUTPUT || exit 72
+        $SRC_DIR/bios/mtools/syslinux --install $OUTPUT || exit 72
       ;;
 
       iso)  # Hybrid ISO image for CDs and USB pendrives
@@ -215,6 +215,12 @@ case $MACHINE in
         # http://elinux.org/RPi_Advanced_Setup#Setting_up_the_boot_partition
         #
         # bootcode.bin, start.elf, cmdline.txt
+        (
+          cd $STEP_DIR || exit 101
+
+          wget https://github.com/raspberrypi/firmware/raw/master/boot/bootcode.bin || exit 102
+          wget https://github.com/raspberrypi/firmware/raw/master/boot/start.elf    || exit 103
+        ) || err $?
 
         createPartitionImage || exit $?
       ;;
