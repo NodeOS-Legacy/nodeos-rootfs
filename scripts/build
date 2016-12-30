@@ -14,7 +14,7 @@ CLR="\e[0m"
 __dirname=`dirname "$(readlink -f "$0")"`
 
 
-while getopts ":B:F:I:K:O:" opt; do
+while getopts ":B:F:I:K:O:U:" opt; do
   case $opt in
     B)
       BAREBONES="$OPTARG"  # Location of the barebones image
@@ -35,12 +35,20 @@ while getopts ":B:F:I:K:O:" opt; do
     O)
       OUTPUT="$OPTARG"  # Output location
     ;;
+
+    U)
+      USERSFS="$OPTARG"  # Usersfs location to be mounted from
+    ;;
   esac
 done
 
 if [[ -z "$OUTPUT" ]]; then
   echo "-O is mandatory"
   exit 1
+fi
+
+if [[ "$USERSFS" ]]; then
+  USERSFS=`blkid $USERSFS -o export | grep UUID`
 fi
 
 
@@ -103,7 +111,7 @@ function createEfiImage() {
 
   # Copy SysLinux files
 
-  cp $__dirname/../resources/syslinux.cfg $STEP_DIR || exit 31
+  eval "echo \"(<$__dirname/../resources/syslinux.cfg)\"" > $STEP_DIR || exit 31
 
   cp $SRC_DIR/efi$BITS/efi/syslinux.efi                     \
      $SRC_DIR/efi$BITS/com32/elflink/ldlinux/ldlinux.e$BITS \
@@ -125,8 +133,8 @@ function createEfiImage() {
 }
 
 function createIsoImage() {
-  mkdir -p                                $STEP_DIR &&
-  cp $__dirname/../resources/syslinux.cfg $STEP_DIR || exit 40
+  mkdir -p                                                  $STEP_DIR &&
+  eval "echo \"(<$__dirname/../resources/syslinux.cfg)\"" > $STEP_DIR || exit 40
 
   # Create EFI boot image
   createEfiImage            || exit $?
@@ -175,7 +183,7 @@ case $MACHINE in
 
         # Copy SysLinux files
 
-        cp $__dirname/../resources/syslinux.cfg $STEP_DIR || err 71
+        eval "echo \"(<$__dirname/../resources/syslinux.cfg)\"" > $STEP_DIR || exit 71
 
         createPartitionImage || exit $?
 
