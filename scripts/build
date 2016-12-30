@@ -111,7 +111,8 @@ function createEfiImage() {
 
   # Copy SysLinux files
 
-  eval "echo \"(<$__dirname/../resources/syslinux.cfg)\"" > $STEP_DIR || exit 31
+  eval "echo \"(<$__dirname/../resources/syslinux.cfg)\"" \
+      > $STEP_DIR/syslinux.cfg || exit 31
 
   cp $SRC_DIR/efi$BITS/efi/syslinux.efi                     \
      $SRC_DIR/efi$BITS/com32/elflink/ldlinux/ldlinux.e$BITS \
@@ -133,8 +134,10 @@ function createEfiImage() {
 }
 
 function createIsoImage() {
-  mkdir -p                                                  $STEP_DIR &&
-  eval "echo \"(<$__dirname/../resources/syslinux.cfg)\"" > $STEP_DIR || exit 40
+  mkdir -p $STEP_DIR || exit 40
+
+  eval "echo \"(<$__dirname/../resources/syslinux.cfg)\"" \
+      > $STEP_DIR/syslinux.cfg || exit 41
 
   # Create EFI boot image
   createEfiImage            || exit $?
@@ -183,7 +186,8 @@ case $MACHINE in
 
         # Copy SysLinux files
 
-        eval "echo \"(<$__dirname/../resources/syslinux.cfg)\"" > $STEP_DIR || exit 71
+        eval "echo \"(<$__dirname/../resources/syslinux.cfg)\"" \
+            > $STEP_DIR/syslinux.cfg || exit 51
 
         createPartitionImage || exit $?
 
