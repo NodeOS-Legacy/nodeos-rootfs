@@ -1,0 +1,1 @@
+ramfsfile=initram.gz

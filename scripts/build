@@ -14,10 +14,14 @@ CLR="\e[0m"
 __dirname=`dirname "$(readlink -f "$0")"`
 
 
-while getopts ":B:F:I:K:O:U:" opt; do
+while getopts ":B:D:F:I:K:O:U:" opt; do
   case $opt in
     B)
       BAREBONES="$OPTARG"  # Location of the barebones image
+    ;;
+
+    D)
+      DTS="$OPTARG"  # Device Tree Specs directory
     ;;
 
     F)
@@ -87,7 +91,6 @@ SRC_DIR=$__dirname/../deps/syslinux
 function createPartitionImage() {
   # Copy kernel and initramfs on the partition image
 
-  cp $KERNEL    $STEP_DIR/kernel.img &&
   cp $INITRAMFS $STEP_DIR/initram.gz || exit 20
 
   # Create partition image
@@ -189,9 +192,11 @@ case $MACHINE in
         eval "echo \"(<$__dirname/../resources/syslinux.cfg)\"" \
             > $STEP_DIR/syslinux.cfg || exit 51
 
+        cp $KERNEL $STEP_DIR/kernel.img || exit 52
+
         createPartitionImage || exit $?
 
-        $SRC_DIR/bios/mtools/syslinux --install $OUTPUT || exit 52
+        $SRC_DIR/bios/mtools/syslinux --install $OUTPUT || exit 53
       ;;
 
       iso)  # Hybrid ISO image for CDs and USB pendrives
@@ -217,36 +222,64 @@ case $MACHINE in
   ;;
 
   raspi|raspi2|raspi3)  # FAT partition for Raspberry PI
+    if [[ -z "$DTS" ]]; then
+      echo "-D is mandatory for MACHINE '$MACHINE'"
+      exit 80
+    fi
+
     case $FORMAT in
       img)
         STEP_DIR=$IMG_DIR
 
-        mkdir -p $STEP_DIR || err 80
+        mkdir -p $STEP_DIR || err 90
 
         # Copy Raspberry PI extra files
         # http://elinux.org/RPi_Advanced_Setup#Setting_up_the_boot_partition
         #
-        # bootcode.bin, start.elf, cmdline.txt
+        # bootcode.bin, fixup.dat, start.elf, cmdline.txt
         (
-          cd $STEP_DIR || exit 81
+          cd $STEP_DIR || exit 91
 
-          wget https://github.com/raspberrypi/firmware/raw/master/boot/bootcode.bin || exit 82
-          wget https://github.com/raspberrypi/firmware/raw/master/boot/start.elf    || exit 83
+          wget https://github.com/raspberrypi/firmware/raw/master/boot/bootcode.bin || exit 92
+          wget https://github.com/raspberrypi/firmware/raw/master/boot/fixup.dat    || exit 93
+          wget https://github.com/raspberrypi/firmware/raw/master/boot/start.elf    || exit 94
         ) || err $?
+
+        cp $__dirname/../resources/config.txt $DTS $STEP_DIR || exit 95
+
+        case $MACHINE in
+          raspi)
+            cp $KERNEL $STEP_DIR/kernel.img || exit 96
+          ;;
+
+          raspi2)
+            cp $KERNEL $STEP_DIR/kernel7.img || exit 97
+          ;;
+
+          raspi3)
+            echo arm_control=0x200 >> $STEP_DIR/config.txt &&
+            cp $KERNEL $STEP_DIR/kernel7.img               || exit 98
+          ;;
+
+          *)
+            echo -e "${RED}Unknown MACHINE '$MACHINE'${CLR}"
+            exit 99
+          ;;
+        esac
 
         createPartitionImage || exit $?
       ;;
 
       *)
         echo -e "${RED}Unknown FORMAT '$FORMAT'${CLR}"
-        exit 90
+        exit 100
       ;;
     esac
   ;;
 
   *)
     echo -e "${RED}Unknown MACHINE '$MACHINE'${CLR}"
-    exit 100
+    exit 110
   ;;
 esac
 
