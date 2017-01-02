@@ -123,7 +123,7 @@ function createEfiImage() {
 
   # Copy kernel and initramfs on the ISO image
 
-  cp $KERNEL    $STEP_DIR/kernel.img &&
+  cp $KERNEL    $STEP_DIR &&
   cp $INITRAMFS $STEP_DIR/initram.gz || exit 33
 
   # Create EFI disk image
@@ -154,7 +154,7 @@ function createIsoImage() {
 
   # Copy kernel and initramfs on the ISO image
 
-  cp $KERNEL    $STEP_DIR/kernel.img &&
+  cp $KERNEL    $STEP_DIR &&
   cp $INITRAMFS $STEP_DIR/initram.gz || exit 44
 
   # Create ISO image
@@ -192,7 +192,7 @@ case $MACHINE in
         eval "echo \"$(<$__dirname/../resources/syslinux.cfg)\"" \
             > $STEP_DIR/syslinux.cfg                             || exit 51
 
-        cp $KERNEL $STEP_DIR/kernel.img || exit 52
+        cp $KERNEL $STEP_DIR || exit 52
 
         createPartitionImage || exit $?
 
