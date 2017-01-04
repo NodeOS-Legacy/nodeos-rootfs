@@ -129,7 +129,7 @@ function createEfiImage() {
   # Create EFI disk image
 
   # DISK_SIZE=`du -ks $STEP_DIR | cut -f1`
-  DISK_SIZE=$((20*1024))
+  DISK_SIZE=$((32*1024))
 
   genfatfs -b $DISK_SIZE \
     --root $STEP_DIR     \
