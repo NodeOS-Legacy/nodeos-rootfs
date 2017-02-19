@@ -52,7 +52,7 @@ if [[ -z "$OUTPUT" ]]; then
 fi
 
 if [[ "$USERSFS" ]]; then
-  USERSFS=`blkid $USERSFS -o export | grep UUID`
+  USERSFS_UUID=`blkid $USERSFS -o export | grep UUID`
 fi
 
 
@@ -63,7 +63,7 @@ source $TOOLCHAIN/scripts/adjustEnvVars.sh || exit $?
 
 if [[ -d $OBJECTS ]]; then
   chmod -R u+w $OBJECTS &&
-  rm    -rf    $OBJECTS || exit 10
+  rm    -rf    $OBJECTS || exit 2
 fi
 
 
@@ -73,6 +73,7 @@ fi
 
 EFIBOOT_DIR=$OBJECTS/efiboot
 EFIBOOT_IMG=$EFIBOOT_DIR.img
+DISK_DIR=$OBJECTS/disk
 IMG_DIR=$OBJECTS/img
 ISO_DIR=$OBJECTS/iso
 
@@ -88,14 +89,38 @@ SRC_DIR=$__dirname/../deps/syslinux
 # Wrap the system up and pack it
 #
 
+# Disk images are a composition of bootfs and usersfs
+function createDiskImage() {
+  BOOTFS=$1
+
+  STEP_DIR=$DISK_DIR
+
+  # ToDo: sizes would need to be on cylinders and retain DOS compatibility
+  # http://elinux.org/RPi_Advanced_Setup#Advanced_SD_card_setup
+
+  SIZE_MBR=$((2*1024))  # Reserve first megabyte for raspi. Is this needed?
+  SIZE_BOOTFS=$(stat -L -c%s "$BOOTFS")
+  SIZE_BOOTFS=$(($SIZE_BOOTFS/512))
+  START_USERSFS=$(($SIZE_MBR+$SIZE_BOOTFS))
+
+  dd if=/dev/zero of=$OUTPUT count=$SIZE_MBR     &&
+  dd if=$BOOTFS   of=$OUTPUT seek=$SIZE_MBR      &&
+  dd if=$USERSFS  of=$OUTPUT seek=$START_USERSFS || exit 10
+
+  eval "echo \"$(<$__dirname/../resources/sfdisk.txt)\"" | \
+      /sbin/sfdisk -uS --force $OUTPUT                   || exit 11
+}
+
 function createPartitionImage() {
+  BOOTFS=$1
+
   # Copy kernel and initramfs on the partition image
 
   cp $INITRAMFS $STEP_DIR/initram.gz || exit 20
 
   # Create partition image
 
-  mkdir -p `dirname $OUTPUT` || exit 21
+  mkdir -p `dirname $BOOTFS` || exit 21
 
   # Size in KB
   # DISK_SIZE=`du -ks $STEP_DIR | cut -f1`
@@ -103,7 +128,7 @@ function createPartitionImage() {
 
   genfatfs -b $DISK_SIZE \
       --root $STEP_DIR   \
-      $OUTPUT            || exit 22
+      $BOOTFS            || exit 22
 }
 
 function createEfiImage() {
@@ -137,6 +162,8 @@ function createEfiImage() {
 }
 
 function createIsoImage() {
+  STEP_DIR=$ISO_DIR
+
   mkdir -p $STEP_DIR || exit 40
 
   eval "echo \"$(<$__dirname/../resources/syslinux.cfg)\"" \
@@ -178,45 +205,113 @@ function createIsoImage() {
   $SRC_DIR/bios/utils/isohybrid $OUTPUT || exit 47
 }
 
+function createTar() {
+  STEP_DIR=$OUTPUT
+
+  mkdir -p `dirname $STEP_DIR` || err 50
+
+  gunzip $BAREBONES -c | tar --delete init | gzip > $STEP_DIR &&
+  cat    $INITRAMFS                              >> $STEP_DIR || err 51
+}
+
+
+function img_pc() {
+  STEP_DIR=$IMG_DIR
+
+  mkdir -p $STEP_DIR || err 60
+
+  BOOTFS=$1
+
+  # Copy SysLinux files
+
+  eval "echo \"$(<$__dirname/../resources/syslinux.cfg)\"" \
+      > $STEP_DIR/syslinux.cfg                             || exit 61
+
+  cp $KERNEL $STEP_DIR || exit 62
+
+  createPartitionImage $BOOTFS || exit $?
+
+  $SRC_DIR/bios/mtools/syslinux --install $BOOTFS || exit 63
+}
+
+function img_raspi() {
+  STEP_DIR=$IMG_DIR
+
+  mkdir -p $STEP_DIR || err 70
+
+  BOOTFS=$1
+
+  # Copy Raspberry PI extra files
+  # http://elinux.org/RPi_Advanced_Setup#Setting_up_the_boot_partition
+  #
+  # bootcode.bin, fixup.dat, start.elf, cmdline.txt
+  (
+    cd $STEP_DIR || exit 71
+
+    wget https://github.com/raspberrypi/firmware/raw/master/boot/bootcode.bin || exit 72
+    wget https://github.com/raspberrypi/firmware/raw/master/boot/fixup.dat    || exit 73
+    wget https://github.com/raspberrypi/firmware/raw/master/boot/start.elf    || exit 74
+  ) || err $?
+
+  cp $__dirname/../resources/config.txt $DTS $STEP_DIR || exit 75
+
+  case $MACHINE in
+    raspi)
+      cp $KERNEL $STEP_DIR/kernel.img || exit 76
+    ;;
+
+    raspi2)
+      cp $KERNEL $STEP_DIR/kernel7.img || exit 77
+    ;;
+
+    raspi3)
+      echo arm_control=0x200 >> $STEP_DIR/config.txt &&
+      cp $KERNEL $STEP_DIR/kernel7.img               || exit 78
+    ;;
+
+    *)
+      echo -e "${RED}Unknown MACHINE '$MACHINE'${CLR}"
+      exit 79
+    ;;
+  esac
+
+  createPartitionImage $BOOTFS || exit $?
+}
+
 
 case $MACHINE in
   pc)
     case $FORMAT in
+      disk)
+        if [[ -z "$USERSFS" ]]; then
+          echo "-U is mandatory"
+          exit 80
+        fi
+
+        BOOTFS=$DISK_DIR/bootfs.img
+
+        img_pc          $BOOTFS &&
+        createDiskImage $BOOTFS || exit $?
+
+        dd bs=440 count=1 conv=notrunc              \
+            if=$SRC_DIR/bios/mbr/mbr.bin of=$OUTPUT || err 81
+      ;;
+
       img)  # FAT partition
-        STEP_DIR=$IMG_DIR
-
-        mkdir -p $STEP_DIR || err 50
-
-        # Copy SysLinux files
-
-        eval "echo \"$(<$__dirname/../resources/syslinux.cfg)\"" \
-            > $STEP_DIR/syslinux.cfg                             || exit 51
-
-        cp $KERNEL $STEP_DIR || exit 52
-
-        createPartitionImage || exit $?
-
-        $SRC_DIR/bios/mtools/syslinux --install $OUTPUT || exit 53
+        img_pc $OUTPUT || exit $?
       ;;
 
       iso)  # Hybrid ISO image for CDs and USB pendrives
-        STEP_DIR=$ISO_DIR
-
         createIsoImage || exit $?
       ;;
 
       tar)  # Combine both barebones and initramfs tarfiles in a single one
-        STEP_DIR=$OUTPUT
-
-        mkdir -p `dirname $STEP_DIR` || err 60
-
-        gunzip $BAREBONES -c | tar --delete init | gzip > $STEP_DIR &&
-        cat    $INITRAMFS                              >> $STEP_DIR || err 61
+        createTar || exit $?
       ;;
 
       *)
         echo -e "${RED}Unknown FORMAT '$FORMAT'${CLR}"
-        exit 70
+        exit 90
       ;;
     esac
   ;;
@@ -224,62 +319,36 @@ case $MACHINE in
   raspi|raspi2|raspi3)  # FAT partition for Raspberry PI
     if [[ -z "$DTS" ]]; then
       echo "-D is mandatory for MACHINE '$MACHINE'"
-      exit 80
+      exit 100
     fi
 
     case $FORMAT in
+      disk)
+        if [[ -z "$USERSFS" ]]; then
+          echo "-U is mandatory"
+          exit 110
+        fi
+
+        BOOTFS=$DISK_DIR/bootfs.img
+
+        img_raspi       $BOOTFS &&
+        createDiskImage $BOOTFS || exit $?
+      ;;
+
       img)
-        STEP_DIR=$IMG_DIR
-
-        mkdir -p $STEP_DIR || err 90
-
-        # Copy Raspberry PI extra files
-        # http://elinux.org/RPi_Advanced_Setup#Setting_up_the_boot_partition
-        #
-        # bootcode.bin, fixup.dat, start.elf, cmdline.txt
-        (
-          cd $STEP_DIR || exit 91
-
-          wget https://github.com/raspberrypi/firmware/raw/master/boot/bootcode.bin || exit 92
-          wget https://github.com/raspberrypi/firmware/raw/master/boot/fixup.dat    || exit 93
-          wget https://github.com/raspberrypi/firmware/raw/master/boot/start.elf    || exit 94
-        ) || err $?
-
-        cp $__dirname/../resources/config.txt $DTS $STEP_DIR || exit 95
-
-        case $MACHINE in
-          raspi)
-            cp $KERNEL $STEP_DIR/kernel.img || exit 96
-          ;;
-
-          raspi2)
-            cp $KERNEL $STEP_DIR/kernel7.img || exit 97
-          ;;
-
-          raspi3)
-            echo arm_control=0x200 >> $STEP_DIR/config.txt &&
-            cp $KERNEL $STEP_DIR/kernel7.img               || exit 98
-          ;;
-
-          *)
-            echo -e "${RED}Unknown MACHINE '$MACHINE'${CLR}"
-            exit 99
-          ;;
-        esac
-
-        createPartitionImage || exit $?
+        img_raspi $OUTPUT || exit $?
       ;;
 
       *)
         echo -e "${RED}Unknown FORMAT '$FORMAT'${CLR}"
-        exit 100
+        exit 120
       ;;
     esac
   ;;
 
   *)
     echo -e "${RED}Unknown MACHINE '$MACHINE'${CLR}"
-    exit 110
+    exit 130
   ;;
 esac
 
