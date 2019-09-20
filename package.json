@@ -1,40 +1,25 @@
 {
-  "name": "nodeos-rootfs",
-  "version": "1.0.0-RC2.0",
+  "name": "nodeos-bootfs",
+  "version": "1.0.0-RC3.0",
   "scripts": {
-    "docker": "docker run",
-    "dockerBuild": "docker build -t rootfs .",
-    "build": "scripts/build",
     "install": "scripts/install",
-    "prepublish": "scripts/prepublish",
-    "start": "scripts/start",
-    "test": "scripts/test",
-    "unbuild": "scripts/unbuild"
+    "test": "scripts/test"
   },
   "author": "Jesús Leganés Combarro 'piranna' <piranna@gmail.com>",
   "license": "MIT",
-  "peerDependencies": {
-    "nodeos-barebones": "1.0.0-RC2.3",
-    "nodeos-initramfs": "1.0.0-RC2.4"
-  },
   "dependencies": {
-    "nodeos-cross-toolchain": "^1.0.0-RC2.11",
+    "nodeos-cross-toolchain": "^1.0.0-RC3.0",
     "download-manager": "^0.1.3",
-    "genfatfs": "nodeos/genfatfs"
+    "genfatfs": "^1.0.3"
   },
-  "devDependencies": {
-    "nodeos-barebones": "1.0.0-RC2.3",
-    "nodeos-initramfs": "1.0.0-RC2.4",
-    "qemu": "NodeOS/qemu"
-  },
-  "description": "Generate a bootable NodeOS disk image",
-  "main": "index.js",
+  "description": "Generate a NodeOS `/boot` filesystem disk image",
+  "bin": "scripts/build",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/NodeOS/nodeos-rootfs.git"
+    "url": "git+https://github.com/NodeOS/nodeos-bootfs.git"
   },
   "bugs": {
-    "url": "https://github.com/NodeOS/nodeos-rootfs/issues"
+    "url": "https://github.com/NodeOS/nodeos-bootfs/issues"
   },
-  "homepage": "https://github.com/NodeOS/nodeos-rootfs#readme"
+  "homepage": "https://github.com/NodeOS/nodeos-bootfs#readme"
 }
